@@ -1,0 +1,33 @@
+# downloads CEVA table from sandbox.CEVA_tracking_activity
+# backs it up in folder and uploads new table
+import pandas as pd
+
+projectid = "zulilyfulfillment"
+path = r"L:\Son Nguyen\CEVA daily InHome\\"
+
+def uploadInHome():
+    inHomefile = pd.read_csv(filepath_or_buffer=path + "Master_InHomeReport.csv",
+                             sep=",",
+                             low_memory=False)
+    backup = pd.read_gbq(
+        """
+        SELECT *
+        FROM sandbox.CEVA_tracking_activity
+        """,
+        projectid,
+        reauth=False,
+        )
+
+    print "Uploading yesterday's table to sandbox.SN_python_testing"
+    pd.DataFrame.to_gbq(backup, 'sandbox.SN_python_testing', projectid,
+                        reauth=False,
+                        if_exists='replace')
+
+    print "Uploading table to sandbox.CEVA_tracking_activity"
+    pd.DataFrame.to_gbq(inHomefile, 'sandbox.CEVA_tracking_activity', projectid,
+                        reauth=False,
+                        if_exists='replace'
+                        )
+    print "done"
+
+uploadInHome()

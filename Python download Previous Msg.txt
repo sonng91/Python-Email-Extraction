@@ -1,0 +1,87 @@
+# script to download attachment from Daily InHomeReport
+# converts the file from xls to csv
+
+import win32com.client
+import datetime as dt
+import pandas as pd
+import xlrd
+import os
+import re
+
+# accessing outlook
+outlook = win32com.client.Dispatch("Outlook.Application")
+mapi = outlook.GetNamespace("MAPI")
+
+# creating directory to save files and pull from
+storepath = r"L:\Son Nguyen\Python\\"
+cevaFolder =  r"L:\Son Nguyen\CEVA daily InHome\Missing files\\"
+inhomeFolder = mapi.Folders["snguyen@zulily.com"].Folders["InHome"].Folders["InHome Reports"]
+
+val_date = dt.date.today()
+selectedDate = val_date + dt.timedelta(days=-3)
+beginningYear = dt.date(year=2019,month=2,day=8)
+# email characteristics
+messages = inhomeFolder.Items
+sortMessages = messages.Sort("[ReceivedTime]",False)
+message = messages.GetLast()
+timeCreation = dt.datetime.strptime(str(message.CreationTime),'%m/%d/%y %H:%M:%S')
+convert = dt.datetime.date(timeCreation)
+dateCount = selectedDate + dt.timedelta(days=-1)
+
+# previous mails
+def download_previousMsg(date):
+    sortMessages = messages.Sort("[ReceivedTime]", False)
+    previousMsg = messages.GetPrevious()
+    currCreation = dt.datetime.strptime(str(previousMsg.CreationTime), '%m/%d/%y %H:%M:%S')
+    currentdate = currCreation.date()
+    prevAtt = previousMsg.Attachments
+
+    # set starting date
+    print str(currentdate) + " - " + str(date)
+    if str(currentdate) == str(date):
+        for attachment in prevAtt:
+            if attachment.FileName.endswith('.xls'):
+                try:
+                    attachment.SaveAsFile(cevaFolder+"InHomeReport_"+ str(date)+".xls")
+                    print "previous Attachment downloaded - " + str(date)
+                except:
+                    print "no attached file"
+                    quit()
+
+        # saves the excel file into CSV then turns it into a dataframe
+        read_Report = pd.read_excel(cevaFolder+"InHomeReport_"+str(date)+".xls",sheet_name=0)\
+            .to_csv(path_or_buf=cevaFolder+"InHomeReport_"+str(date)+".csv", index=False,encoding="utf-8-sig")
+        print "saving CSV file - " + str(date)
+        #if len(read_Report.columns) < 55: read_Report.insert("extra1", 'extra2', "extra3")
+
+        inHomeReport_csv = pd.read_csv(filepath_or_buffer= cevaFolder+"InHomeReport_"+str(date)+".csv")
+        fixingColumns = inHomeReport_csv.columns = \
+            ['House Bill','Origin','Orig Metro','Orig Country ','Destin','Destin Metro','Destin Country','HB Create/Ship Date',
+            'HB Create/Ship Time','Estimated Delivery',	'Service Level','PaymentType',
+        # Shipper's info
+            'Shipper Name','Shipper Address 1','Shipper Address 2','Shipper Address 3','Ship City','ShipState','ShipZip','ShipCtry',
+        # Customer's info
+             'Consignee Name','Consignee Address 1','Consignee Address 2','Consignee Address 3','Cons City','Cons State','Cons Zip','Cons Ctry',
+        # billing info
+            'Bill To','Bill To Address 1','Bill To Address 2','Bill To Address 3','Bill To City','Bill To State','Bill To Zip','Bill To Ctry',
+             'Customer',
+        # shipment info
+             'Pieces','Actual Weight','Charge Weight','Type','Charges','Currency','Commodity','Dom/Intl',
+        # shipment activity
+             'Status Code','Status Description','Date','Time','Signature','Exception Code',
+        # shipment reference fields
+            'Shippers Reference','Consignee Reference',	'Other Reference','All consignee References']
+        # save with new column names
+        inHomeReport_save = inHomeReport_csv.to_csv(path_or_buf=cevaFolder+"InHomeReport_"+str(date)+".csv", index=False,encoding="utf-8-sig")
+        if os.path.exists(cevaFolder + "InHomeReport_" + str(date) + ".xls"):
+            try:
+                os.remove(cevaFolder + "InHomeReport_" + str(date) + ".xls")
+                print "deleting " + cevaFolder + "InHomeReport_" + str(date) + ".xls"
+            except:
+                print "file not found to remove - " + str(date)
+    else:
+        download_previousMsg(date)
+
+while dateCount > beginningYear:
+    download_previousMsg(dateCount)
+    dateCount += dt.timedelta(days=-1)

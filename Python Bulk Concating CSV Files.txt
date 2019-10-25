@@ -1,0 +1,81 @@
+from Scripts.download_previousMsg import download_previousMsg
+import win32com.client
+import datetime as dt
+import pandas as pd
+import xlrd
+import os
+import re
+
+
+# accessing outlook
+outlook = win32com.client.Dispatch("Outlook.Application")
+mapi = outlook.GetNamespace("MAPI")
+
+# creating directory to save files and pull from
+storepath = r"L:\Son Nguyen\Python\\"
+cevaFolder =  r"L:\Son Nguyen\CEVA daily InHome\\"
+inhomeFolder = mapi.Folders["snguyen@zulily.com"].Folders["InHome"].Folders["InHome Reports"]
+
+val_date = dt.date.today()
+selectedDate = val_date + dt.timedelta(days=-3)
+beginningYear = dt.date(year=2018,month=2,day=8)
+# email characteristics
+messages = inhomeFolder.Items
+sortMessages = messages.Sort("[ReceivedTime]",False)
+message = messages.GetLast()
+timeCreation = dt.datetime.strptime(str(message.CreationTime),'%m/%d/%y %H:%M:%S')
+convert = dt.datetime.date(timeCreation)
+
+
+
+# saves the excel file into CSV then turns it into a dataframe
+read_InHomeReport = pd.read_excel(cevaFolder+"InHomeReport_"+str(convert)+".xls",sheet_name=0)\
+    .to_csv(path_or_buf=cevaFolder+"InHomeReport_"+str(convert)+".csv", index=False,encoding="utf-8-sig")
+inHomeReport_csv = pd.read_csv(filepath_or_buffer= cevaFolder+"InHomeReport_"+str(convert)+".csv")
+fixingColumns = inHomeReport_csv.columns = \
+    ['House_Bill', 'Origin', 'Orig_Metro', 'Orig_Country', 'Destin', 'Destin_Metro', 'Destin_Country',
+     'HB_Create_Ship_Date',
+     'HB_Create_Ship_Time', 'Estimated_Delivery', 'Service_Level', 'PaymentType',
+     # Shipper's info
+     'Shipper_Name', 'Shipper_Address_1', 'Shipper_Address_2', 'Shipper_Address_3', 'Ship_City', 'ShipState', 'ShipZip',
+     'ShipCtry',
+     # Customer's info
+     'Consignee_Name', 'Consignee_Address_1', 'Consignee_Address_2', 'Consignee_Address_3', 'Cons_City', 'Cons_State',
+     'Cons_Zip', 'Cons_Ctry',
+     # billing info
+     'Bill_To', 'Bill_To_Address_1', 'Bill_To_Address_2', 'Bill_To_Address_3', 'Bill_To_City', 'Bill_To_State',
+     'Bill_To_Zip', 'Bill_To_Ctry',
+     'Customer',
+     # shipment info
+     'Pieces', 'Actual_Weight', 'Charge_Weight', 'Type', 'Charges', 'Currency', 'Commodity', 'Dom_Intl',
+     # shipment activity
+     'Status_Code', 'Status_Description', 'Status_Date', 'Time', 'Signature', 'Exception_Code',
+     # shipment reference fields
+     'Shippers_Reference', 'Consignee_Reference', 'Other_Reference', 'All_consignee_References']
+# save with new column names
+inHomeReport_main = inHomeReport_csv.to_csv(path_or_buf=cevaFolder+"InHomeReport_"+str(convert)+".csv", index=False,encoding="utf-8-sig")
+os.remove(cevaFolder+"InHomeReport_"+str(convert)+".xls")
+
+# downloading files from Variable "beginningYear" and converting them to CSV
+previousMsg = messages.GetPrevious()
+currCreation = dt.datetime.strptime(str(previousMsg.CreationTime), '%m/%d/%y %H:%M:%S')
+currentDate = dt.datetime.date(currCreation)
+dateCount = val_date + dt.timedelta(days=-1)
+
+while dateCount > beginningYear:
+    download_previousMsg(dateCount)
+    # joining main table with tmp table
+    main_table = pd.read_csv(filepath_or_buffer=cevaFolder+"InHomeReport_"+str(convert)+".csv", sep=",")
+    tmp_table = pd.read_csv(filepath_or_buffer=cevaFolder+"InHomeReport_"+str(dateCount)+".csv", sep=",")
+    # this does not create duplicates
+    #joinedTable = pd.merge(left=main_table, right=tmp_table, how='outer', left_index=False, right_index=False).sort_values(
+    #    ("HB Create/Ship Date"), ascending=False)
+    joinedTable = pd.concat([main_table, tmp_table])
+    print "merged " + str(dateCount) + " file with the master file."
+    dateCount += dt.timedelta(days=-1)
+
+print "Cleaning up duplicates..."
+cleanup = joinedTable.drop_duplicates(keep='first').sort_values("House Bill")
+print "Saving Master file..."
+mainInHomeReport = cleanup.to_csv(path_or_buf=cevaFolder + "InHomeReport_Feb8-Feb24.csv",index=False, encoding="utf-8-sig")
+print "Script finished"

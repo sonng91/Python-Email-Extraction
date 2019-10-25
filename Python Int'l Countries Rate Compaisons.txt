@@ -1,0 +1,80 @@
+import pandas as pd
+import numpy as np
+import math
+
+path = r"L:\Son Nguyen\Must Ships\Aug 13\\"
+flowRate = "Flow Rates.xlsx"
+dhlRate = "DHL rate table.xlsx"
+
+flowtable = pd.read_excel(path+flowRate,sheet_name=0)
+dhltable = pd.read_excel(path+dhlRate,sheet_name=0)
+newtable = dhltable
+
+def weight_check(flowy, dhly):
+    weight_rate = math.ceil(dhltable.columns[dhly])
+    while flowy < len(flowtable.columns):
+        if flowtable.columns[flowy] == 65:
+            return flowy;
+        elif flowtable.columns[flowy] == weight_rate:
+            return flowy;
+        else:
+            flowy += 1
+
+def best_rates(dx, fx):
+    dhly = 2
+    while dhly < len(dhltable.columns):
+        # making sure it doesn't run into a str column
+        if dhltable.iloc[dx,dhly] == 0:
+            print "No rates for DHL weight: " + str(dhltable.columns[dhly])
+            flowy = weight_check(0,dhly)
+            flowCurr = flowtable.iloc[fx,flowy]
+            newtable.iloc[dx, dhly] = flowCurr
+            print "Flow is less than DHL"
+        elif type(dhltable.columns[dhly]) == float or type(dhltable.columns[dhly]) == int:
+            dhlCurr = dhltable.iloc[dx,dhly]
+            print dhlCurr
+            # round up to the nearest weight for flow rate to compare rates
+            print "starting weight_check method"
+            flowy = weight_check(0,dhly)
+            flowCurr = flowtable.iloc[fx,flowy]
+            print flowCurr
+            #cheaper_rate(dhlCurr,flowCurr,dx,dhly)
+            difference_rate(dhlCurr, flowCurr, dx, dhly)
+
+        dhly += 1
+    print "Finished " + flowtable.iloc[fx,1]
+
+def cheaper_rate(dhlrate, frate, dx, dhly):
+    if dhlrate < frate:
+        newtable.iloc[dx, dhly] = str(dhlrate) + "_dhl"
+        print "DHL is less than Flow"
+    else:
+        newtable.iloc[dx, dhly] = frate
+        print "Flow is less than DHL"
+
+def difference_rate(dhlrate, frate, dx, dhly):
+    difference = dhlrate - frate
+    newtable.iloc[dx,dhly] = difference
+
+flowx = 0
+#matching countries
+for flowx in flowtable.index:
+    ctryCode = flowtable.iloc[flowx, 1]
+    #if dhltable.apply(lambda row: row.astype(str).str.contains(ctryCode).any(), axis=1):
+    dhlx = 0
+    while dhlx < len(dhltable.index):
+        if dhltable.iloc[dhlx,1] == ctryCode:
+            print ctryCode + " found in dhltable"
+            # implement method to fill in best rates with row, column
+            print "starting best_rates method"
+            best_rates(dhlx, flowx)
+        elif pd.isnull(flowtable.iloc[flowx, 1]):
+            print flowtable.iloc[flowx,0] + " does not have a country code"
+        else:
+            if dhlx == len(dhltable.index)-1:
+                print ctryCode + " not found"
+        dhlx += 1
+
+print "saving file..."
+printScoresheet = newtable.to_csv(path_or_buf=path+"Scoresheet_difference.csv",index=False, encoding="utf-8-sig")
+print "Script finished"
