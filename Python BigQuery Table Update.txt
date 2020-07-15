@@ -2,8 +2,8 @@
 # backs it up in folder and uploads new table
 import pandas as pd
 
-projectid = "zulilyfulfillment"
-path = r"L:\Son Nguyen\CEVA daily InHome\\"
+projectid = "Database"
+path = r"Directory"
 
 def uploadInHome():
     inHomefile = pd.read_csv(filepath_or_buffer=path + "Master_InHomeReport.csv",
