@@ -13,9 +13,8 @@ mapi = outlook.GetNamespace("MAPI")
 email = ''
 
 # --------------------------- creating directory to save files and pull from ---------------------------
-#storepath = r"L:\Son Nguyen\Python\\"
-cevaFolder =  r"L:\Son Nguyen\CEVA daily InHome\\"
-inhomeFolder = mapi.Folders["snguyen@zulily.com"].Folders["InHome"].Folders["InHome Reports"]
+cevaFolder =  r"*Directory to save file in*"
+inhomeFolder = mapi.Folders["*Email*"].Folders["InHome"].Folders["InHome Reports"]
 projectid = "zulilyfulfillment"
 val_date = dt.date.today()
 # --------------------------- email characteristics ---------------------------
