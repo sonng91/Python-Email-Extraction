@@ -13,8 +13,8 @@ mapi = outlook.GetNamespace("MAPI")
 
 # creating directory to save files and pull from
 storepath = r"L:\Son Nguyen\Python\\"
-cevaFolder =  r"L:\Son Nguyen\CEVA daily InHome\\"
-inhomeFolder = mapi.Folders["snguyen@zulily.com"].Folders["InHome"].Folders["InHome Reports"]
+cevaFolder =  r"*directory to save file in*"
+inhomeFolder = mapi.Folders["*Email*"].Folders["InHome"].Folders["InHome Reports"]
 
 val_date = dt.date.today()
 selectedDate = val_date + dt.timedelta(days=-3)
